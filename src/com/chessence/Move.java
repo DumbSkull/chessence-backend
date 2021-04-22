@@ -1,4 +1,4 @@
-package com.chessencebackend;
+package com.chessence;
 
 import java.io.Serializable;
 

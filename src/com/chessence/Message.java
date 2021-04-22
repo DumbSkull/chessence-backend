@@ -1,4 +1,4 @@
-package com.chessencebackend;
+package com.chessence;
 
 import java.io.Serializable;
 
@@ -6,6 +6,7 @@ public class Message implements Serializable {
     private String message = "";
     private String typeOfMessage = "";
     private boolean isNewLobbyRequest = false;
+    private static final long serialVersionUID = 7989L;
 
     public Message(String message){
         this.message = message;

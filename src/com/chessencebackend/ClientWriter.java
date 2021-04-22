@@ -1,5 +1,7 @@
 package com.chessencebackend;
 
+import com.chessence.Message;
+
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.net.Socket;

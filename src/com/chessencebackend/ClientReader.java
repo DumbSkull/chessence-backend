@@ -1,5 +1,8 @@
 package com.chessencebackend;
 
+import com.chessence.Message;
+import com.chessence.Move;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.net.Socket;

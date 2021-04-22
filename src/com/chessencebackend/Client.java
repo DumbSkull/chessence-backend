@@ -1,9 +1,9 @@
 package com.chessencebackend;
 
+import com.chessence.Message;
+
 import java.io.*;
 import java.net.*;
-import java.util.ArrayList;
-import java.util.Random;
 import java.util.Scanner;
 
 // Client class
@@ -16,6 +16,7 @@ public class Client {
         //Scanner scanner = new Scanner(System.in);
 
         // getting localhost ip
+        InetAddress ec2Instance = InetAddress.getByName("52.66.201.63");
         InetAddress ip = InetAddress.getByName("localhost");
 
         // establish the connection with server port 5056

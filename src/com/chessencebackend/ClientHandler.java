@@ -1,5 +1,8 @@
 package com.chessencebackend;
 
+import com.chessence.Message;
+import com.chessence.Move;
+
 import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
@@ -26,6 +29,7 @@ public class ClientHandler extends Thread {
         while (true) {
             try {
                 Object receivedObject = objectInputStream.readObject();
+                //System.out.println((String) receivedObject);
                 Message receivedMessage = (Message) receivedObject;
                 System.out.println("\nreceived a message!");
                 System.out.println("\nmessage: " + receivedMessage.getMessage() + "\ntype of message: "+receivedMessage.getTypeOfMessage() + "\n" + receivedMessage.isNewLobbyRequest());
@@ -96,8 +100,10 @@ public class ClientHandler extends Thread {
                     }
                 }
             } catch (ClassNotFoundException e) {
+                e.printStackTrace();
                 continue;
             } catch (IOException e) {
+                e.printStackTrace();
                 break;
             }
         }
