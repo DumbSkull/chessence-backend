@@ -8,6 +8,7 @@ import java.net.*;
 public class Server
 {
     public static HashMap<String, ArrayList<ObjectOutputStream>> connectedRooms = new HashMap<>();
+    public static HashMap<String, ArrayList<String>> usernamesByRooms = new HashMap<>();
     public static ArrayList<ObjectOutputStream> connectedOutputStreams = new ArrayList<ObjectOutputStream>();
 
     public static void main(String[] args) throws IOException

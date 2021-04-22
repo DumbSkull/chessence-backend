@@ -13,7 +13,6 @@ public class ClientHandler extends Thread {
     private ObjectInputStream objectInputStream = null;
     final Socket clientSocket;
 
-
     // Constructor
     public ClientHandler(Socket clientSocket
             , ObjectInputStream objectInputStream, ObjectOutputStream objectOutputStream) {
@@ -31,8 +30,6 @@ public class ClientHandler extends Thread {
                 Object receivedObject = objectInputStream.readObject();
                 //System.out.println((String) receivedObject);
                 Message receivedMessage = (Message) receivedObject;
-                System.out.println("\nreceived a message!");
-                System.out.println("\nmessage: " + receivedMessage.getMessage() + "\ntype of message: "+receivedMessage.getTypeOfMessage() + "\n" + receivedMessage.isNewLobbyRequest());
                 //broadcasting to all:
                 if (receivedMessage.getTypeOfMessage().contains("chat")) {
                     String roomKey = "";
@@ -44,10 +41,7 @@ public class ClientHandler extends Thread {
                             break;
                         }
                     }
-                    System.out.println("\nBroadcasting..." + ((Message) receivedObject).getMessage());
-                    for (var outputStream : Server.connectedRooms.get(roomKey)) {
-                        outputStream.writeObject(receivedObject);
-                    }
+                    broadcastToRoom(receivedObject, roomKey);
                 } else if (receivedMessage.getTypeOfMessage().contains("lobbyInfo")){
                     System.out.println("\nReceived lobby request!");
                     if (receivedMessage.isNewLobbyRequest()) {
@@ -77,8 +71,11 @@ public class ClientHandler extends Thread {
 
                         //add the output stream the hashmap:
                         ArrayList<ObjectOutputStream> tempStreamArray = new ArrayList<>();
+                        ArrayList<String> tempStringArray = new ArrayList<>();
                         tempStreamArray.add(this.objectOutputStream);
+                        tempStringArray.add(receivedMessage.getSecondaryMessage());
                         Server.connectedRooms.put(roomId, tempStreamArray);
+                        Server.usernamesByRooms.put(roomId, tempStringArray);
 
                         Message response = new Message(roomId, "lobbyInfo");
                         objectOutputStream.writeObject(response);
@@ -90,11 +87,18 @@ public class ClientHandler extends Thread {
                             System.out.println("\nsend the error response back!");
                             continue;
                         } else {
-                            System.out.println("\nRoom exists!");
                             var connectedRooms = Server.connectedRooms.get(roomId);
                             connectedRooms.add(objectOutputStream);
+                            var usernamesByRoom = Server.usernamesByRooms.get(roomId);
+                            usernamesByRoom.add(receivedMessage.getSecondaryMessage());
+
+                            var responseForJoiningExistingLobby = new Message("_success", "lobbyInfo");
+                            responseForJoiningExistingLobby.setSecondaryMessage(String.join(",", Server.usernamesByRooms.get(roomId)));
+
                             Server.connectedRooms.replace(roomId, connectedRooms);
-                            objectOutputStream.writeObject(new Message("_success", "lobbyInfo"));
+                            Server.usernamesByRooms.replace(roomId, usernamesByRoom);
+
+                            objectOutputStream.writeObject(responseForJoiningExistingLobby);
                             System.out.println("\nsent the success message back!");
                         }
                     }
@@ -116,6 +120,13 @@ public class ClientHandler extends Thread {
         } catch (
                 IOException e) {
             e.printStackTrace();
+        }
+    }
+
+    void broadcastToRoom(Object objectToBroadcast, String roomId) throws IOException {
+        System.out.println("\nBroadcasting..." + ((Message) objectToBroadcast).getMessage());
+        for (var outputStream : Server.connectedRooms.get(roomId)) {
+            outputStream.writeObject(objectToBroadcast);
         }
     }
 }
