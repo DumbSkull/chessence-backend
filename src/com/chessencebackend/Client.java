@@ -33,7 +33,9 @@ public class Client {
         System.out.println("\nDo you want to create a new lobby? (Y/N)");
         char newLobbyChoice = input.next().charAt(0);
         if (newLobbyChoice == 'Y' || newLobbyChoice == 'y') {
-            objectOutputStream.writeObject(new Message("", "lobbyInfo", true));
+            var msg = new Message("", "lobbyInfo", true);
+            msg.setSecondaryMessage(username);
+            objectOutputStream.writeObject(msg);
             System.out.println("\nsent lobby request!");
             while (true) {
                 try {
@@ -57,6 +59,7 @@ public class Client {
                     roomId = input.nextLine();
                 }
                 Message roomIdMessage = new Message(roomId, "lobbyInfo", false);
+                roomIdMessage.setSecondaryMessage(username);
                 objectOutputStream.writeObject(roomIdMessage);
                 while (true) {
                     try {
