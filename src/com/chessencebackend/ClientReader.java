@@ -23,7 +23,9 @@ public class ClientReader extends Thread {
         while (true) {
             try {
                 Object receivedObject = objectInputStream.readObject();
-                //System.out.println("\nReceived a message!");
+                System.out.println("\nRECEIVED A MESSAGE!");
+                System.out.println("\nMessage: " +  ((Message) receivedObject).getMessage());
+                System.out.println("\nType of Message: " + ((Message) receivedObject).getTypeOfMessage());
                 if (receivedObject instanceof Message) {
                     System.out.println("\n" + ((Message) receivedObject).getMessage());
                 } else if (receivedObject instanceof Move) {

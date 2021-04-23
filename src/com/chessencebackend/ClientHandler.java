@@ -33,157 +33,168 @@ public class ClientHandler extends Thread {
             try {
                 Object receivedObject = objectInputStream.readObject();
 
-                Message receivedMessage = (Message) receivedObject;
+                if (receivedObject instanceof Message) {
+                    Message receivedMessage = (Message) receivedObject;
 
-                // ============================================= HANDLING THE CHATTING:  =============================================
-                if (receivedMessage.getTypeOfMessage().contains("chat")) {
-                    if (this.roomId == null) {
-                        String roomKey = "";
-                        boolean found = false;
-                        for (var entry : Server.connectedRooms.entrySet()) {
-                            for (ClientDetails clientDetails : entry.getValue()) {
-                                if (clientDetails.getObjectOutputStream() == this.objectOutputStream) {
-                                    roomKey = entry.getKey();
-                                    this.roomId = roomKey;
-                                    found = true;
-                                    break;
+                    // ============================================= HANDLING THE CHATTING:  =============================================
+                    if (receivedMessage.getTypeOfMessage().contains("chat")) {
+                        if (this.roomId == null) {
+                            String roomKey = "";
+                            boolean found = false;
+                            for (var entry : Server.connectedRooms.entrySet()) {
+                                for (ClientDetails clientDetails : entry.getValue()) {
+                                    if (clientDetails.getObjectOutputStream() == this.objectOutputStream) {
+                                        roomKey = entry.getKey();
+                                        this.roomId = roomKey;
+                                        found = true;
+                                        break;
+                                    }
                                 }
+                                if (found)
+                                    break;
                             }
-                            if (found)
-                                break;
                         }
-                    }
-                    broadcastToRoom(receivedObject, this.roomId);
+                        broadcastToRoom(receivedObject, this.roomId);
 
-                    // ========================================== END OF HANDLING CHATTING ================================================
-                } else if (receivedMessage.getTypeOfMessage().contains("leaveLobby")) {
-                    //========================== REMOVING THE CURRENT USER FROM THE HASHMAP: ===============================
-                    removeCurrentUser();
-
-                    Server.showAllConnectedClientsDetails();
-                    //=========================== END OF REMOVING THE CURRENT USER =========================================
-                } else if (receivedMessage.getTypeOfMessage().contains("lobbyInfo")) {
-                    this.username = receivedMessage.getSecondaryMessage().trim().replaceAll(",", "");
-
-                    // ============================================================ HANDLING REQUESTS TO CREATE NEW LOBBY:  ============================================================
-                    if (receivedMessage.isNewLobbyRequest()) {
-                        System.out.println("\nAsked to create new lobby...");
-
-                        //=============CREATE A RANDOM 5 CHARACTER ROOM-ID:====================
-
-                        String alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"; // create a string of all characters
-                        StringBuilder sb = new StringBuilder(); // create random string builder
-                        Random random = new Random(); // create an object of Random class
-                        int length = 5; // specify length of random string
-
-                        for (int i = 0; i < length; i++) {
-                            // generate random index number
-                            int index = random.nextInt(alphabet.length());
-                            // get character specified by index
-                            // from the string
-                            char randomChar = alphabet.charAt(index);
-                            // append the character to string builder
-                            sb.append(randomChar);
-                        }
-
-                        String roomId = sb.toString();
-
-                        //====================================
-
-                        //add the output stream the hashmap:
-                        ClientDetails currentClientDetails = new ClientDetails(this.username, this.objectOutputStream, this.clientSocket, true);
-                        ArrayList<ClientDetails> tempClientDetails = new ArrayList<ClientDetails>();
-                        tempClientDetails.add(currentClientDetails);
-                        Server.connectedRooms.put(roomId, tempClientDetails);
-                        this.roomId = roomId;
-                        Message response = new Message(roomId, "lobbyInfo");
-                        objectOutputStream.writeObject(response);
+                        // ========================================== END OF HANDLING CHATTING ================================================
+                    } else if (receivedMessage.getTypeOfMessage().contains("leaveLobby")) {
+                        //========================== REMOVING THE CURRENT USER FROM THE HASHMAP: ===============================
+                        removeCurrentUser();
 
                         Server.showAllConnectedClientsDetails();
+                        //=========================== END OF REMOVING THE CURRENT USER =========================================
+                    } else if (receivedMessage.getTypeOfMessage().contains("lobbyInfo")) {
+                        this.username = receivedMessage.getSecondaryMessage().trim().replaceAll(",", "");
 
-                        // =========================================================== END OF CREATE-LOBBY-REQUEST =============================================================
-                    } else {
+                        // ============================================================ HANDLING REQUESTS TO CREATE NEW LOBBY:  ============================================================
+                        if (receivedMessage.isNewLobbyRequest()) {
+                            System.out.println("\nAsked to create new lobby...");
 
-                        // ============================================================ HANDLING REQUESTS TO JOIN EXISTING LOBBY:  ============================================================
+                            //=============CREATE A RANDOM 5 CHARACTER ROOM-ID:====================
 
-                        //Error - Couldn't find the room:
-                        String roomId = receivedMessage.getMessage();
-                        if (!Server.connectedRooms.containsKey(roomId)) {
-                            System.out.println("\nERROR: No such room exists!");
-                            objectOutputStream.writeObject(new Message("_error", "lobbyInfo"));
-                            continue;
+                            String alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"; // create a string of all characters
+                            StringBuilder sb = new StringBuilder(); // create random string builder
+                            Random random = new Random(); // create an object of Random class
+                            int length = 5; // specify length of random string
+
+                            for (int i = 0; i < length; i++) {
+                                // generate random index number
+                                int index = random.nextInt(alphabet.length());
+                                // get character specified by index
+                                // from the string
+                                char randomChar = alphabet.charAt(index);
+                                // append the character to string builder
+                                sb.append(randomChar);
+                            }
+
+                            String roomId = sb.toString();
+
+                            //====================================
+
+                            //add the output stream the hashmap:
+                            ClientDetails currentClientDetails = new ClientDetails(this.username, this.objectOutputStream, this.clientSocket, true);
+                            ArrayList<ClientDetails> tempClientDetails = new ArrayList<ClientDetails>();
+                            tempClientDetails.add(currentClientDetails);
+                            Server.connectedRooms.put(roomId, tempClientDetails);
+                            this.roomId = roomId;
+                            Message response = new Message(roomId, "lobbyInfo");
+                            objectOutputStream.writeObject(response);
+
+                            Server.showAllConnectedClientsDetails();
+
+                            // =========================================================== END OF CREATE-LOBBY-REQUEST =============================================================
                         } else {
 
-                            //Success - When existing room is found:
+                            // ============================================================ HANDLING REQUESTS TO JOIN EXISTING LOBBY:  ============================================================
 
-
-                            //Getting all players names and putting in allUsernames:
-
-                            var playerList = Server.connectedRooms.get(roomId).stream().
-                                    filter(clientDetails -> clientDetails.isPlayer()).
-                                    map(clientDetails -> clientDetails.getUsername()).
-                                    collect(Collectors.toList());
-
-                            var spectatorList = Server.connectedRooms.get(roomId).stream().
-                                    filter(clientDetails -> !clientDetails.isPlayer()).
-                                    map(clientDetails -> clientDetails.getUsername()).
-                                    collect(Collectors.toList());
-
-                            if ((playerList.size() == 2) && (spectatorList.size() == 4)) {
-                                var responseForFullLobby = new Message("_error", "lobbyInfo");
-                                responseForFullLobby.setSecondaryMessage("The lobby is full! Cannot join a full lobby.");
-                                objectOutputStream.writeObject(responseForFullLobby);
+                            //Error - Couldn't find the room:
+                            String roomId = receivedMessage.getMessage();
+                            if (!Server.connectedRooms.containsKey(roomId)) {
+                                System.out.println("\nERROR: No such room exists!");
+                                objectOutputStream.writeObject(new Message("_error", "lobbyInfo"));
                                 continue;
+                            } else {
+
+                                //Success - When existing room is found:
+
+
+                                //Getting all players names and putting in allUsernames:
+
+                                var playerList = Server.connectedRooms.get(roomId).stream().
+                                        filter(clientDetails -> clientDetails.isPlayer()).
+                                        map(clientDetails -> clientDetails.getUsername()).
+                                        collect(Collectors.toList());
+
+                                var spectatorList = Server.connectedRooms.get(roomId).stream().
+                                        filter(clientDetails -> !clientDetails.isPlayer()).
+                                        map(clientDetails -> clientDetails.getUsername()).
+                                        collect(Collectors.toList());
+
+                                if ((playerList.size() == 2) && (spectatorList.size() == 4)) {
+                                    var responseForFullLobby = new Message("_error", "lobbyInfo");
+                                    responseForFullLobby.setSecondaryMessage("The lobby is full! Cannot join a full lobby.");
+                                    objectOutputStream.writeObject(responseForFullLobby);
+                                    continue;
+                                }
+
+                                var responseForJoiningExistingLobby = new Message("_success", "lobbyInfo");
+
+                                String allUsernames = String.join(",", playerList);
+
+                                //Getting all specatators names and appending it to allUsernames after the keyword "_#SPECTATORS#_":
+                                allUsernames = allUsernames + "_#SPECTATORS#_" + String.join(",", spectatorList);
+
+                                //putting this in the response message:
+                                responseForJoiningExistingLobby.setSecondaryMessage(allUsernames);
+                                this.isPlayer = (playerList.size() < 2);
+                                ClientDetails currentClientDetails = new ClientDetails(this.username, this.objectOutputStream, this.clientSocket, this.isPlayer);
+                                var connectedRooms = Server.connectedRooms.get(roomId);
+                                connectedRooms.add(currentClientDetails);
+                                Server.connectedRooms.replace(roomId, connectedRooms);
+                                objectOutputStream.writeObject(responseForJoiningExistingLobby);
+
+                                this.roomId = roomId;
+
+                                //broadcasting the newly joined client to everyone in the room:
+                                var newPersonJoinedLobby = new Message(this.username, "newPlayerJoinedLobby");
+                                newPersonJoinedLobby.setSecondaryMessage(this.isPlayer ? "player" : "spectator");
+                                broadcastToRoom(newPersonJoinedLobby, roomId);
                             }
 
-                            var responseForJoiningExistingLobby = new Message("_success", "lobbyInfo");
+                            Server.showAllConnectedClientsDetails();
+                            // ======================================================== END OF HANDLING REQUESTS TO JOIN EXISTING LOBBY:  ========================================================
+                        }
+                    } else if (receivedMessage.getTypeOfMessage().contains("playerChangeStatus")) {
+                        // ======================================================== CHANGING THE PLAYER STATUS (B/W PLAYER AND SPEC):  ========================================================
+                        this.isPlayer = !this.isPlayer;
+                        for (int i = 0; i < Server.connectedRooms.get(this.roomId).size(); i++) {
+                            if (Server.connectedRooms.get(this.roomId).get(i).getSocket() == this.clientSocket) {
+                                //updating the isPlayer condition:
+                                var tempClient = Server.connectedRooms.get(this.roomId).get(i);
+                                tempClient.setPlayer(this.isPlayer);
+                                Server.connectedRooms.get(this.roomId).set(i, tempClient);
 
-                            String allUsernames = String.join(",", playerList);
+                                //broadcasting to everyone about this player's status change:
+                                var anotherPlayerChangedStatus = new Message(this.username, "anotherPlayerChangedStatus");
+                                anotherPlayerChangedStatus.setSecondaryMessage(!this.isPlayer ? "wasPlayer" : "wasSpectator");
+                                broadcastToRoom(anotherPlayerChangedStatus, this.roomId);
 
-                            //Getting all specatators names and appending it to allUsernames after the keyword "_#SPECTATORS#_":
-                            allUsernames = allUsernames + "_#SPECTATORS#_" + String.join(",", spectatorList);
-
-                            //putting this in the response message:
-                            responseForJoiningExistingLobby.setSecondaryMessage(allUsernames);
-                            this.isPlayer = (playerList.size() < 2);
-                            ClientDetails currentClientDetails = new ClientDetails(this.username, this.objectOutputStream, this.clientSocket, this.isPlayer);
-                            var connectedRooms = Server.connectedRooms.get(roomId);
-                            connectedRooms.add(currentClientDetails);
-                            Server.connectedRooms.replace(roomId, connectedRooms);
-                            objectOutputStream.writeObject(responseForJoiningExistingLobby);
-
-                            this.roomId = roomId;
-
-                            //broadcasting the newly joined client to everyone in the room:
-                            var newPersonJoinedLobby = new Message(this.username, "newPlayerJoinedLobby");
-                            newPersonJoinedLobby.setSecondaryMessage(this.isPlayer ? "player" : "spectator");
-                            broadcastToRoom(newPersonJoinedLobby, roomId);
+                                break;
+                            }
                         }
 
-                        Server.showAllConnectedClientsDetails();
-                        // ======================================================== END OF HANDLING REQUESTS TO JOIN EXISTING LOBBY:  ========================================================
+                        // =================================================== END OF CHANGING THE PLAYER STATUS (B/W PLAYER AND SPEC):  ======================================================
+                    } else if (receivedMessage.getTypeOfMessage().contains("gameStart")) {
+                        //Informing everyone that the game has begun!
+                        var gameStartedMessage = new Message("", "gameStarted");
+                        broadcastToRoom(gameStartedMessage, this.roomId);
                     }
-                } else if (receivedMessage.getTypeOfMessage().contains("playerChangeStatus")) {
-                    // ======================================================== CHANGING THE PLAYER STATUS (B/W PLAYER AND SPEC):  ========================================================
-                    this.isPlayer = !this.isPlayer;
-                    for (int i = 0; i < Server.connectedRooms.get(this.roomId).size(); i++) {
-                        if (Server.connectedRooms.get(this.roomId).get(i).getSocket() == this.clientSocket) {
-                            //updating the isPlayer condition:
-                            var tempClient = Server.connectedRooms.get(this.roomId).get(i);
-                            tempClient.setPlayer(this.isPlayer);
-                            Server.connectedRooms.get(this.roomId).set(i, tempClient);
-
-                            //broadcasting to everyone about this player's status change:
-                            var anotherPlayerChangedStatus = new Message(this.username, "anotherPlayerChangedStatus");
-                            anotherPlayerChangedStatus.setSecondaryMessage(!this.isPlayer ? "wasPlayer" : "wasSpectator");
-                            broadcastToRoom(anotherPlayerChangedStatus, this.roomId);
-
-                            break;
-                        }
-                    }
-
-                    // =================================================== END OF CHANGING THE PLAYER STATUS (B/W PLAYER AND SPEC):  ======================================================
+                } else if (receivedObject instanceof Move) {
+                    // =================================================== IF ITS A MOVE OPERATION:  ======================================================
+                    var receivedMove = (Move) receivedObject;
+                    broadcastToRoom(receivedMove, this.roomId);
                 }
+
             } catch (ClassNotFoundException e) {
                 e.printStackTrace();
                 continue;

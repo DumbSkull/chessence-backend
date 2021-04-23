@@ -1,6 +1,7 @@
 package com.chessencebackend;
 
 import com.chessence.Message;
+import com.chessence.Move;
 
 import java.io.IOException;
 import java.io.ObjectOutputStream;
@@ -35,7 +36,32 @@ public class ClientWriter extends Thread {
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
-                } else {
+                }
+                else if (m.contains("gameStarted")) {
+                    Message gameStartedMessage = new Message("", "gameStarted");
+
+                    try {
+                        objectOutputStream.writeObject(gameStartedMessage);
+                        System.out.println("\nSent change request to server! ");
+                        //System.out.println("\nSent to server!");
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+                else if (m.contains("move")) {
+                    var splitString = m.split("-");
+                    int[] from = {Integer.parseInt(splitString[1]) , Integer.parseInt(splitString[2])};
+                    int[] to = {Integer.parseInt(splitString[3]) , Integer.parseInt(splitString[4])};
+                    Move move = new Move(from, to);
+                    try {
+                        objectOutputStream.writeObject(move);
+                        System.out.println("\nSent change request to server! ");
+                        //System.out.println("\nSent to server!");
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+                else {
                     Message message = new Message(Client.username + " : " + m);
                     try {
                         objectOutputStream.writeObject(message);
