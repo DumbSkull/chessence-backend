@@ -11,8 +11,10 @@ import java.util.Scanner;
 public class ClientWriter extends Thread {
     ObjectOutputStream objectOutputStream;
     Socket clientSocket;
+    String username;
 
-    public ClientWriter(Socket clientSocket, ObjectOutputStream objectOutputStream) {
+    public ClientWriter(Socket clientSocket, ObjectOutputStream objectOutputStream, String username) {
+        this.username = username;
         this.clientSocket = clientSocket;
         this.objectOutputStream = objectOutputStream;
     }
@@ -43,6 +45,17 @@ public class ClientWriter extends Thread {
                     try {
                         objectOutputStream.writeObject(gameStartedMessage);
                         System.out.println("\nSent change request to server! ");
+                        //System.out.println("\nSent to server!");
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+                else if (m.contains("forfeit")) {
+                    Message gameStartedMessage = new Message(Client.username, "playerForfeit");
+
+                    try {
+                        objectOutputStream.writeObject(gameStartedMessage);
+                        System.out.println("\nSent forfeit request to server! ");
                         //System.out.println("\nSent to server!");
                     } catch (IOException e) {
                         e.printStackTrace();

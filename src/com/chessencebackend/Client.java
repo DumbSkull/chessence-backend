@@ -82,7 +82,7 @@ public class Client {
             }
         }
 
-        Thread writingThread = new ClientWriter(s, objectOutputStream);
+        Thread writingThread = new ClientWriter(s, objectOutputStream, username);
         Thread readingThread = new ClientReader(s, objectInputStream);
 
         writingThread.start();

@@ -35,7 +35,7 @@ public class ClientHandler extends Thread {
 
                 if (receivedObject instanceof Message) {
                     Message receivedMessage = (Message) receivedObject;
-
+                    System.out.println("\nMessage received type: " + receivedMessage.getTypeOfMessage());
                     // ============================================= HANDLING THE CHATTING:  =============================================
                     if (receivedMessage.getTypeOfMessage().contains("chat")) {
                         if (this.roomId == null) {
@@ -60,7 +60,6 @@ public class ClientHandler extends Thread {
                     } else if (receivedMessage.getTypeOfMessage().contains("leaveLobby")) {
                         //========================== REMOVING THE CURRENT USER FROM THE HASHMAP: ===============================
                         removeCurrentUser();
-
                         Server.showAllConnectedClientsDetails();
                         //=========================== END OF REMOVING THE CURRENT USER =========================================
                     } else if (receivedMessage.getTypeOfMessage().contains("lobbyInfo")) {
@@ -185,11 +184,30 @@ public class ClientHandler extends Thread {
 
                         // =================================================== END OF CHANGING THE PLAYER STATUS (B/W PLAYER AND SPEC):  ======================================================
                     } else if (receivedMessage.getTypeOfMessage().contains("gameStart")) {
+                        // ================================================================================
                         //Informing everyone that the game has begun!
                         var gameStartedMessage = new Message("", "gameStarted");
+                        gameStartedMessage.setSecondaryMessage(receivedMessage.getSecondaryMessage());  //secondary message contains the name of the person who started
                         broadcastToRoom(gameStartedMessage, this.roomId);
+                        // ================================================================================
+                    } else if (receivedMessage.getTypeOfMessage().contains("playerForfeit")) {
+                        // ================================================================================
+                        //Informing everyone that a player has left
+                        var playerForfeitMessage = new Message(receivedMessage.getMessage(), "playerForfeit");     //getMessage contains the name of the person who forfeited
+                        playerForfeitMessage.setSecondaryMessage(this.isPlayer ? "player" : "spectator"); //secondary message contains the status of the player forfeiting (player/spec)
+                        broadcastToRoom(playerForfeitMessage, this.roomId);
+                        removeCurrentUser();
+                        // ================================================================================
+                    }
+                    else if (receivedMessage.getTypeOfMessage().contains("gameOver")) {
+                        // ================================================================================
+                        //Informing everyone that a player won
+                        var gameOverMessage = new Message(receivedMessage.getMessage(), "gameOver");     //getMessage contains the name of the person who won
+                        broadcastToRoom(gameOverMessage, this.roomId);
+                        // ================================================================================
                     }
                 } else if (receivedObject instanceof Move) {
+                    System.out.println("\nMOVE OPERATION RECEIVED!");
                     // =================================================== IF ITS A MOVE OPERATION:  ======================================================
                     var receivedMove = (Move) receivedObject;
                     broadcastToRoom(receivedMove, this.roomId);
@@ -217,26 +235,27 @@ public class ClientHandler extends Thread {
     }
 
     void removeCurrentUser() throws IOException {
+
+        //broadcasting to everyone about who left the lobby:
+        var playerLeaveLobbyMessage = new Message(this.username, "anotherPlayerLeftLobby");
+        broadcastToRoom(playerLeaveLobbyMessage, this.roomId);
+
+        //informing the current client to stop the reading thread that he/she has started:
+        var informToLeaveReadingThreadMessage = new Message("", "playerLeftLobby");
+        this.objectOutputStream.writeObject(informToLeaveReadingThreadMessage);
+
         if (this.roomId != null) {
             Server.connectedRooms.get(roomId)
                     .removeIf(clientDetails -> clientDetails.getSocket() == this.clientSocket);
             if (Server.connectedRooms.get(roomId).size() == 0)
                 Server.connectedRooms.remove(roomId);
 
-            //informing the current client to stop the reading thread that he/she has started:
-            var informToLeaveReadingThreadMessage = new Message("", "playerLeftLobby");
-            this.objectOutputStream.writeObject(informToLeaveReadingThreadMessage);
-
-            //broadcasting to everyone about who left the lobby:
-            var playerLeaveLobbyMessage = new Message(this.username, "anotherPlayerLeftLobby");
-            broadcastToRoom(playerLeaveLobbyMessage, this.roomId);
             this.roomId = null;
         }
     }
 
     void broadcastToRoom(Object objectToBroadcast, String roomId) throws IOException {
-        System.out.println("\nBROADCASTING: ");
-        Server.showAllConnectedClientsDetails();
+        //Server.showAllConnectedClientsDetails();
         for (var clientDetails : Server.connectedRooms.get(roomId)) {
             if (clientDetails.getSocket() != this.clientSocket)
                 clientDetails.getObjectOutputStream().writeObject(objectToBroadcast);
